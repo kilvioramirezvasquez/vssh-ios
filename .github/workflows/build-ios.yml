@@ -69,8 +69,15 @@ jobs:
         cd ${{ github.workspace }}
         if [ -f "Podfile" ]; then
           echo "📦 Installing CocoaPods dependencies..."
-          pod install || {
+          echo "Podfile contents:"
+          cat Podfile
+          echo ""
+          echo "Running pod install..."
+          pod install --verbose 2>&1 | tee pod_install.log || {
             echo "❌ pod install failed!"
+            echo "Last 50 lines of pod install log:"
+            tail -50 pod_install.log
+            echo ""
             echo "This is critical - archive will fail without workspace"
             exit 1
           }
@@ -78,10 +85,14 @@ jobs:
           echo "📁 Verifying workspace was created..."
           if [ -f "VSSHKR.xcworkspace/contents.xcworkspacedata" ]; then
             echo "✅ Workspace created successfully"
+            ls -la VSSHKR.xcworkspace/
           else
             echo "❌ Workspace not found after pod install!"
             echo "Contents of current directory:"
             ls -la
+            echo ""
+            echo "Looking for any workspace files:"
+            find . -name "*.xcworkspace" -type d 2>/dev/null || echo "No workspace found"
             exit 1
           fi
         else
