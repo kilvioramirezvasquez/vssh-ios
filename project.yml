@@ -6,11 +6,6 @@ options:
   developmentLanguage: en
   xcodeVersion: "14.0"
 
-packages:
-  NMSSH:
-    url: https://github.com/NMSSH/NMSSH.git
-    from: 2.3.0
-
 targets:
   VSSHKR:
     type: application
@@ -33,8 +28,8 @@ targets:
           - UIInterfaceOrientationLandscapeRight
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: true
-    dependencies:
-      - package: NMSSH
+    # Dependencies will be managed by CocoaPods (see Podfile)
+    # No SPM packages here to avoid conflicts
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: com.venafi.vsshkr
       SWIFT_VERSION: "5.0"
