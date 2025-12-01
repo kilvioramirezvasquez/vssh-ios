@@ -49,12 +49,7 @@ jobs:
       id: check_project
       run: |
         cd ${{ github.workspace }}
-        if [ -f "VSSHKR.xcworkspace/contents.xcworkspacedata" ]; then
-          echo "project_type=workspace" >> $GITHUB_OUTPUT
-          echo "project_exists=true" >> $GITHUB_OUTPUT
-          echo "✅ Workspace found"
-        elif [ -f "VSSHKR.xcodeproj/project.pbxproj" ]; then
-          echo "project_type=project" >> $GITHUB_OUTPUT
+        if [ -f "VSSHKR.xcodeproj/project.pbxproj" ]; then
           echo "project_exists=true" >> $GITHUB_OUTPUT
           echo "✅ Project found"
         else
@@ -73,18 +68,39 @@ jobs:
       run: |
         cd ${{ github.workspace }}
         if [ -f "Podfile" ]; then
-          pod install || echo "pod install failed, continuing..."
+          echo "📦 Installing CocoaPods dependencies..."
+          pod install || {
+            echo "⚠️ pod install failed, but continuing..."
+            echo "This might be okay if dependencies are already installed"
+          }
+          echo "✅ Dependencies installed"
         else
           echo "⚠️ Podfile not found"
         fi
     
-    - name: Build iOS App (for device)
+    - name: Check final project type
+      id: check_final_project
       if: steps.check_project.outputs.project_exists == 'true'
+      run: |
+        cd ${{ github.workspace }}
+        if [ -f "VSSHKR.xcworkspace/contents.xcworkspacedata" ]; then
+          echo "project_type=workspace" >> $GITHUB_OUTPUT
+          echo "✅ Workspace found (after pod install)"
+        elif [ -f "VSSHKR.xcodeproj/project.pbxproj" ]; then
+          echo "project_type=project" >> $GITHUB_OUTPUT
+          echo "✅ Project found (no workspace, using project)"
+        else
+          echo "project_type=none" >> $GITHUB_OUTPUT
+          echo "❌ No project or workspace found"
+        fi
+    
+    - name: Build iOS App (for device)
+      if: steps.check_final_project.outputs.project_type != 'none'
       continue-on-error: true
       run: |
         cd ${{ github.workspace }}
         echo "🔨 Building for iOS device (required for IPA)..."
-        if [ -f "VSSHKR.xcworkspace/contents.xcworkspacedata" ]; then
+        if [ "${{ steps.check_final_project.outputs.project_type }}" == "workspace" ]; then
           xcodebuild clean build \
             -workspace VSSHKR.xcworkspace \
             -scheme VSSHKR \
@@ -116,12 +132,12 @@ jobs:
         echo "✅ Build completed successfully"
     
     - name: Archive iOS App
-      if: steps.check_project.outputs.project_exists == 'true'
+      if: steps.check_final_project.outputs.project_type != 'none'
       continue-on-error: true
       run: |
         cd ${{ github.workspace }}
         echo "📦 Creating archive..."
-        if [ "${{ steps.check_project.outputs.project_type }}" == "workspace" ]; then
+        if [ "${{ steps.check_final_project.outputs.project_type }}" == "workspace" ]; then
           xcodebuild archive \
             -workspace VSSHKR.xcworkspace \
             -scheme VSSHKR \
@@ -155,7 +171,7 @@ jobs:
         echo "✅ Archive created successfully"
     
     - name: Export IPA
-      if: steps.check_project.outputs.project_exists == 'true'
+      if: steps.check_final_project.outputs.project_type != 'none'
       continue-on-error: true
       run: |
         cd ${{ github.workspace }}
@@ -188,7 +204,7 @@ jobs:
         fi
     
     - name: Upload Artifacts
-      if: steps.check_project.outputs.project_exists == 'true'
+      if: steps.check_final_project.outputs.project_type != 'none'
       continue-on-error: true
       uses: actions/upload-artifact@v4
       with:
