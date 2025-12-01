@@ -73,27 +73,22 @@ class SSHService: ObservableObject {
         let terminalType = connection.terminalType.isEmpty ? "linux" : connection.terminalType
         
         // Request PTY with terminal type and size
-        // NMSSH API: requestPty(withTerminalType:width:height:error:)
+        // NMSSH API: requestPty(withTerminalType:width:height:)
         var ptyError: NSError?
-        channel.requestPty(withTerminalType: terminalType, width: UInt(cols), height: UInt(rows), error: &ptyError)
+        let ptySuccess = channel.requestPty(withTerminalType: terminalType, width: UInt(cols), height: UInt(rows), error: &ptyError)
         
-        if let error = ptyError {
+        if !ptySuccess, let error = ptyError {
             throw error
         }
         
-        // Set TERM environment variable
-        var envError: NSError?
-        channel.setEnvironmentVariable("TERM", value: terminalType, error: &envError)
-        
-        if let error = envError {
-            print("Warning: Failed to set TERM: \(error)")
-        }
+        // Set TERM environment variable (NMSSH doesn't have setEnvironmentVariable, skip for now)
+        // The terminal type is already set via requestPty
         
         // Start shell
         var shellError: NSError?
-        channel.startShell(&shellError)
+        let shellSuccess = channel.startShell(&shellError)
         
-        if let error = shellError {
+        if !shellSuccess, let error = shellError {
             throw error
         }
         
@@ -110,8 +105,9 @@ class SSHService: ObservableObject {
                 // NMSSH read is blocking, so we use async
                 let data = await withCheckedContinuation { (continuation: CheckedContinuation<Data?, Never>) in
                     DispatchQueue.global(qos: .userInitiated).async {
-                        // NMSSH channel.read() returns Data?
-                        let result = channel.read()
+                        // NMSSH channel.readData() returns Data?
+                        var error: NSError?
+                        let result = channel.readData(&error)
                         continuation.resume(returning: result)
                     }
                 }
@@ -138,10 +134,11 @@ class SSHService: ObservableObject {
         
         let data = (command + "\r\n").data(using: .utf8) ?? Data()
         var error: NSError?
-        channel.write(data, error: &error)
+        let timeout = NSNumber(value: 30) // 30 second timeout
+        let success = channel.write(data, error: &error, timeout: timeout)
         
-        if let error = error {
-            throw error
+        if !success, let writeError = error {
+            throw writeError
         }
     }
     
@@ -152,10 +149,11 @@ class SSHService: ObservableObject {
         
         let data = character.data(using: .utf8) ?? Data()
         var error: NSError?
-        channel.write(data, error: &error)
+        let timeout = NSNumber(value: 30) // 30 second timeout
+        let success = channel.write(data, error: &error, timeout: timeout)
         
-        if let error = error {
-            throw error
+        if !success, let writeError = error {
+            throw writeError
         }
     }
     

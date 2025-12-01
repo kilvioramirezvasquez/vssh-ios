@@ -7,8 +7,9 @@
 //
 
 import Foundation
+import Combine
 
-class ConnectionStorage {
+class ConnectionStorage: ObservableObject {
     private let userDefaults = UserDefaults.standard
     private let connectionsKey = "vssh_connections"
     
