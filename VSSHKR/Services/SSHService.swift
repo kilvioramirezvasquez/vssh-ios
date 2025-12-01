@@ -73,22 +73,26 @@ class SSHService: ObservableObject {
         let terminalType = connection.terminalType.isEmpty ? "linux" : connection.terminalType
         
         // Request PTY with terminal type and size
-        // NMSSH API: requestPty(withTerminalType:width:height:)
+        // NMSSH API: requestPty(withTerminalType:width:height:error:) returns Bool
         var ptyError: NSError?
         let ptySuccess = channel.requestPty(withTerminalType: terminalType, width: UInt(cols), height: UInt(rows), error: &ptyError)
         
-        if !ptySuccess, let error = ptyError {
-            throw error
+        if !ptySuccess {
+            if let error = ptyError {
+                throw error
+            } else {
+                throw SSHError.connectionFailed
+            }
         }
         
         // Set TERM environment variable (NMSSH doesn't have setEnvironmentVariable, skip for now)
         // The terminal type is already set via requestPty
         
-        // Start shell
+        // Start shell (NMSSH startShell doesn't take error parameter)
         var shellError: NSError?
-        let shellSuccess = channel.startShell(&shellError)
+        channel.startShell(&shellError)
         
-        if !shellSuccess, let error = shellError {
+        if let error = shellError {
             throw error
         }
         
@@ -105,9 +109,9 @@ class SSHService: ObservableObject {
                 // NMSSH read is blocking, so we use async
                 let data = await withCheckedContinuation { (continuation: CheckedContinuation<Data?, Never>) in
                     DispatchQueue.global(qos: .userInitiated).async {
-                        // NMSSH channel.readData() returns Data?
+                        // NMSSH channel.read() returns Data? (not readData)
                         var error: NSError?
-                        let result = channel.readData(&error)
+                        let result = channel.read(&error)
                         continuation.resume(returning: result)
                     }
                 }
