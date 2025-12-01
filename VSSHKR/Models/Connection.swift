@@ -11,7 +11,7 @@ import Foundation
 struct Connection: Codable, Identifiable {
     var id: UUID = UUID()
     var name: String = ""
-    var protocol: String = "SSH"
+    var `protocol`: String = "SSH"
     var host: String = ""
     var port: Int = 22
     var username: String = ""

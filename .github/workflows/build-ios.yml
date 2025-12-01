@@ -153,6 +153,9 @@ jobs:
               exit 1
             }
         elif [ "${{ steps.check_final_project.outputs.project_type }}" == "project" ]; then
+          echo "⚠️ Using project directly, but CocoaPods dependencies may not be available"
+          echo "⚠️ This will likely fail if dependencies are required"
+          echo "⚠️ Attempting archive anyway..."
           xcodebuild archive \
             -project VSSHKR.xcodeproj \
             -scheme VSSHKR \
@@ -165,8 +168,13 @@ jobs:
             -allowProvisioningUpdates 2>&1 | tee archive.log || {
               echo "❌ Archive failed. Last 50 lines:"
               tail -50 archive.log
+              echo ""
+              echo "💡 Tip: Archive requires workspace when using CocoaPods"
               exit 1
             }
+        else
+          echo "❌ Unknown project type: ${{ steps.check_final_project.outputs.project_type }}"
+          exit 1
         fi
         # Verify archive was created
         if [ -d "./build/VSSHKR.xcarchive" ]; then
