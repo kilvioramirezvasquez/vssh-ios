@@ -170,36 +170,39 @@ jobs:
         fi
         echo "✅ Archive created successfully"
     
-    - name: Export IPA
+    - name: Create IPA manually (skip exportArchive)
       if: steps.check_final_project.outputs.project_type != 'none'
-      continue-on-error: true
       run: |
         cd ${{ github.workspace }}
+        echo "📤 Creating IPA manually from archive..."
         if [ -f "./build/VSSHKR.xcarchive" ]; then
-          echo "📤 Exporting IPA..."
-          xcodebuild -exportArchive \
-            -archivePath ./build/VSSHKR.xcarchive \
-            -exportPath ./build \
-            -exportOptionsPlist ExportOptions.plist \
-            -allowProvisioningUpdates 2>&1 | tee export.log || {
-              echo "❌ Export failed. Last 50 lines:"
-              tail -50 export.log
-              echo ""
-              echo "⚠️ Trying alternative: creating IPA manually from .app"
-              if [ -d "./build/VSSHKR.xcarchive/Products/Applications/VSSHKR.app" ]; then
-                mkdir -p ./build/Payload
-                cp -r ./build/VSSHKR.xcarchive/Products/Applications/VSSHKR.app ./build/Payload/
-                cd ./build
-                zip -r VSSHKR.ipa Payload/
-                cd ..
-                echo "✅ IPA created manually: ./build/VSSHKR.ipa"
-              else
-                echo "❌ .app not found in archive"
-                exit 1
-              fi
-            }
+          # Find the .app inside the archive
+          APP_PATH=$(find ./build/VSSHKR.xcarchive -name "VSSHKR.app" -type d | head -1)
+          if [ -n "$APP_PATH" ] && [ -d "$APP_PATH" ]; then
+            echo "✅ Found .app at: $APP_PATH"
+            mkdir -p ./build/Payload
+            cp -r "$APP_PATH" ./build/Payload/
+            cd ./build
+            echo "📦 Zipping into IPA..."
+            zip -r -q VSSHKR.ipa Payload/
+            cd ..
+            if [ -f "./build/VSSHKR.ipa" ]; then
+              echo "✅ IPA created successfully: ./build/VSSHKR.ipa"
+              ls -lh ./build/VSSHKR.ipa
+            else
+              echo "❌ Failed to create IPA"
+              exit 1
+            fi
+          else
+            echo "❌ .app not found in archive"
+            echo "Searching in archive structure:"
+            find ./build/VSSHKR.xcarchive -type d -name "*.app" || echo "No .app found"
+            exit 1
+          fi
         else
-          echo "❌ Archive not found, cannot export"
+          echo "❌ Archive not found at ./build/VSSHKR.xcarchive"
+          echo "Available files in build/:"
+          ls -la ./build/ 2>/dev/null || echo "build/ directory does not exist"
           exit 1
         fi
     
