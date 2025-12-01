@@ -1,0 +1,40 @@
+name: VSSHKR
+options:
+  bundleIdPrefix: com.venafi
+  deploymentTarget:
+    iOS: "13.0"
+  developmentLanguage: en
+  xcodeVersion: "14.0"
+
+packages:
+  NMSSH:
+    url: https://github.com/NMSSH/NMSSH.git
+    from: 2.3.0
+
+targets:
+  VSSHKR:
+    type: application
+    platform: iOS
+    deploymentTarget: "13.0"
+    sources:
+      - path: VSSHKR
+    info:
+      path: Info.plist
+      properties:
+        CFBundleDisplayName: VSSH-KR
+        CFBundleIdentifier: com.venafi.vsshkr
+        CFBundleShortVersionString: "1.0"
+        CFBundleVersion: "1"
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: true
+    dependencies:
+      - package: NMSSH
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.venafi.vsshkr
+      SWIFT_VERSION: "5.0"
+      TARGETED_DEVICE_FAMILY: "1,2" # iPhone and iPad
+

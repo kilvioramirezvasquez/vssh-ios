@@ -1,0 +1,51 @@
+# Lista Completa de Archivos - VSSH-KR iOS
+
+## Archivos Swift (8)
+VSSHKR/App/VSSHKRApp.swift
+VSSHKR/Models/Connection.swift
+VSSHKR/Views/MainView.swift
+VSSHKR/Views/TerminalView.swift
+VSSHKR/Views/ConnectionEditView.swift
+VSSHKR/Services/SSHService.swift
+VSSHKR/Services/ConnectionStorage.swift
+VSSHKR/Utils/AnsiFilter.swift
+
+## Documentación (21 archivos)
+START_HERE.md
+FINAL_STEPS.md
+COMPLETE_GUIDE.md
+QUICK_START.md
+TROUBLESHOOTING.md
+CHECKLIST.md
+COMPARISON.md
+INDEX.md
+XCODE_PROJECT_TEMPLATE.md
+create_xcode_project_manual.md
+SETUP_XCODE.md
+INSTALL_IOS.md
+README.md
+QUICK_REFERENCE.md
+PROJECT_STATUS.md
+FINAL_SUMMARY.md
+INSTALLATION_COMPLETE.md
+EXECUTIVE_SUMMARY.md
+CHANGELOG.md
+README_FIRST.md
+SUMMARY.md
+
+## Scripts (4)
+verify_setup.sh
+setup_project.sh
+build.sh
+create_xcode_project.sh
+
+## Configuración (3)
+Podfile
+Info.plist
+project.yml
+
+## Otros (2)
+.gitignore
+ALL_FILES.txt
+
+## Total: 38+ archivos

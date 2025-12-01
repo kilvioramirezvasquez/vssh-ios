@@ -1,0 +1,58 @@
+# Xcode
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+*.xcworkspace/*
+!*.xcworkspace/contents.xcworkspacedata
+!*.xcworkspace/xcshareddata/
+
+# CocoaPods
+Pods/
+*.xcworkspace
+Podfile.lock
+
+# Build
+build/
+DerivedData/
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Swift Package Manager
+.swiftpm/
+.build/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# User settings
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# Temporary files
+*.tmp
+*.log
+*.cache
+
+# Xcode user data
+xcuserdata/
+*.xcuserstate
+*.xcuserdatad
+
+# App packaging
+*.app
+*.app.dSYM
+
+# Archives
+*.zip
+*.tar.gz
+
+# Keep these
+!Podfile
+!Info.plist
+!project.yml

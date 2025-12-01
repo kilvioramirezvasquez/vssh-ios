@@ -1,0 +1,69 @@
+name: Build iOS
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: latest-stable
+    
+    - name: Install CocoaPods
+      run: |
+        sudo gem install cocoapods
+        pod --version
+    
+    - name: Install Dependencies
+      run: |
+        cd ${{ github.workspace }}
+        pod install
+    
+    - name: Build iOS App
+      run: |
+        cd ${{ github.workspace }}
+        xcodebuild clean build \
+          -workspace VSSHKR.xcworkspace \
+          -scheme VSSHKR \
+          -sdk iphonesimulator \
+          -destination 'platform=iOS Simulator,name=iPhone 14' \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO
+    
+    - name: Archive iOS App
+      run: |
+        cd ${{ github.workspace }}
+        xcodebuild archive \
+          -workspace VSSHKR.xcworkspace \
+          -scheme VSSHKR \
+          -archivePath ./build/VSSHKR.xcarchive \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO
+    
+    - name: Export IPA
+      run: |
+        cd ${{ github.workspace }}
+        xcodebuild -exportArchive \
+          -archivePath ./build/VSSHKR.xcarchive \
+          -exportPath ./build \
+          -exportOptionsPlist ExportOptions.plist || echo "ExportOptions.plist no encontrado, saltando exportación"
+    
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: iOS-Build
+        path: |
+          build/
+          VSSHKR.xcworkspace
+
