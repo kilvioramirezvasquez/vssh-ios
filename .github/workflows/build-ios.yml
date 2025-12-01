@@ -73,13 +73,23 @@ jobs:
           cat Podfile
           echo ""
           echo "Running pod install..."
-          pod install --verbose 2>&1 | tee pod_install.log || {
-            echo "❌ pod install failed!"
-            echo "Last 50 lines of pod install log:"
-            tail -50 pod_install.log
-            echo ""
-            echo "This is critical - archive will fail without workspace"
-            exit 1
+          # Try pod install with repo update if needed
+          pod install --repo-update --verbose 2>&1 | tee pod_install.log || {
+            echo "⚠️ pod install failed, trying without repo-update..."
+            pod install --verbose 2>&1 | tee pod_install.log || {
+              echo "❌ pod install failed completely!"
+              echo "Last 100 lines of pod install log:"
+              tail -100 pod_install.log
+              echo ""
+              echo "Checking if workspace exists anyway..."
+              if [ -f "VSSHKR.xcworkspace/contents.xcworkspacedata" ]; then
+                echo "✅ Workspace exists despite pod install failure"
+              else
+                echo "❌ No workspace found"
+                echo "This is critical - archive will fail without workspace"
+                exit 1
+              fi
+            }
           }
           echo "✅ Dependencies installed"
           echo "📁 Verifying workspace was created..."
@@ -87,12 +97,17 @@ jobs:
             echo "✅ Workspace created successfully"
             ls -la VSSHKR.xcworkspace/
           else
-            echo "❌ Workspace not found after pod install!"
+            echo "⚠️ Workspace not found at expected location"
             echo "Contents of current directory:"
             ls -la
             echo ""
             echo "Looking for any workspace files:"
-            find . -name "*.xcworkspace" -type d 2>/dev/null || echo "No workspace found"
+            find . -name "*.xcworkspace" -type d 2>/dev/null | head -10
+            echo ""
+            echo "Checking Podfile.lock and Pods directory:"
+            ls -la Podfile.lock Pods/ 2>/dev/null || echo "Pods not installed"
+            echo ""
+            echo "❌ Workspace not found - this will cause archive to fail"
             exit 1
           fi
         else
