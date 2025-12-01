@@ -25,16 +25,6 @@ jobs:
         sudo gem install cocoapods
         pod --version
     
-    - name: Install xcodegen (if needed)
-      run: |
-        brew install xcodegen || echo "xcodegen installation skipped"
-    
-    - name: Generate Xcode Project
-      run: |
-        cd ${{ github.workspace }}
-        if [ -f "project.yml" ]; then
-          xcodegen generate || echo "xcodegen failed, will try manual setup"
-        fi
     
     - name: Install Dependencies
       run: |
