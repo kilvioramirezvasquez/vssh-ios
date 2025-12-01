@@ -78,55 +78,81 @@ jobs:
           echo "⚠️ Podfile not found"
         fi
     
-    - name: Build iOS App
+    - name: Build iOS App (for device)
       if: steps.check_project.outputs.project_exists == 'true'
       continue-on-error: true
       run: |
         cd ${{ github.workspace }}
+        echo "🔨 Building for iOS device (required for IPA)..."
         if [ -f "VSSHKR.xcworkspace/contents.xcworkspacedata" ]; then
-          echo "🔨 Building with workspace..."
           xcodebuild clean build \
             -workspace VSSHKR.xcworkspace \
             -scheme VSSHKR \
-            -sdk iphonesimulator \
-            -destination 'platform=iOS Simulator,name=iPhone 14' \
+            -sdk iphoneos \
+            -configuration Release \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
-            -allowProvisioningUpdates || echo "Build failed, but continuing..."
+            CODE_SIGNING_ALLOWED=NO \
+            -allowProvisioningUpdates 2>&1 | tee build.log || {
+              echo "❌ Build failed. Last 50 lines of log:"
+              tail -50 build.log
+              exit 1
+            }
         elif [ -f "VSSHKR.xcodeproj/project.pbxproj" ]; then
-          echo "🔨 Building with project..."
           xcodebuild clean build \
             -project VSSHKR.xcodeproj \
             -scheme VSSHKR \
-            -sdk iphonesimulator \
-            -destination 'platform=iOS Simulator,name=iPhone 14' \
+            -sdk iphoneos \
+            -configuration Release \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
-            -allowProvisioningUpdates || echo "Build failed, but continuing..."
+            CODE_SIGNING_ALLOWED=NO \
+            -allowProvisioningUpdates 2>&1 | tee build.log || {
+              echo "❌ Build failed. Last 50 lines of log:"
+              tail -50 build.log
+              exit 1
+            }
         fi
+        echo "✅ Build completed successfully"
     
     - name: Archive iOS App
       if: steps.check_project.outputs.project_exists == 'true'
       continue-on-error: true
       run: |
         cd ${{ github.workspace }}
+        echo "📦 Creating archive..."
         if [ "${{ steps.check_project.outputs.project_type }}" == "workspace" ]; then
           xcodebuild archive \
             -workspace VSSHKR.xcworkspace \
             -scheme VSSHKR \
             -archivePath ./build/VSSHKR.xcarchive \
+            -sdk iphoneos \
+            -configuration Release \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
-            -allowProvisioningUpdates || echo "Archive failed"
+            CODE_SIGNING_ALLOWED=NO \
+            -allowProvisioningUpdates 2>&1 | tee archive.log || {
+              echo "❌ Archive failed. Last 50 lines:"
+              tail -50 archive.log
+              exit 1
+            }
         elif [ "${{ steps.check_project.outputs.project_type }}" == "project" ]; then
           xcodebuild archive \
             -project VSSHKR.xcodeproj \
             -scheme VSSHKR \
             -archivePath ./build/VSSHKR.xcarchive \
+            -sdk iphoneos \
+            -configuration Release \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
-            -allowProvisioningUpdates || echo "Archive failed"
+            CODE_SIGNING_ALLOWED=NO \
+            -allowProvisioningUpdates 2>&1 | tee archive.log || {
+              echo "❌ Archive failed. Last 50 lines:"
+              tail -50 archive.log
+              exit 1
+            }
         fi
+        echo "✅ Archive created successfully"
     
     - name: Export IPA
       if: steps.check_project.outputs.project_exists == 'true'
@@ -134,13 +160,31 @@ jobs:
       run: |
         cd ${{ github.workspace }}
         if [ -f "./build/VSSHKR.xcarchive" ]; then
+          echo "📤 Exporting IPA..."
           xcodebuild -exportArchive \
             -archivePath ./build/VSSHKR.xcarchive \
             -exportPath ./build \
             -exportOptionsPlist ExportOptions.plist \
-            -allowProvisioningUpdates || echo "Export failed"
+            -allowProvisioningUpdates 2>&1 | tee export.log || {
+              echo "❌ Export failed. Last 50 lines:"
+              tail -50 export.log
+              echo ""
+              echo "⚠️ Trying alternative: creating IPA manually from .app"
+              if [ -d "./build/VSSHKR.xcarchive/Products/Applications/VSSHKR.app" ]; then
+                mkdir -p ./build/Payload
+                cp -r ./build/VSSHKR.xcarchive/Products/Applications/VSSHKR.app ./build/Payload/
+                cd ./build
+                zip -r VSSHKR.ipa Payload/
+                cd ..
+                echo "✅ IPA created manually: ./build/VSSHKR.ipa"
+              else
+                echo "❌ .app not found in archive"
+                exit 1
+              fi
+            }
         else
-          echo "Archive not found, skipping export"
+          echo "❌ Archive not found, cannot export"
+          exit 1
         fi
     
     - name: Upload Artifacts
