@@ -21,16 +21,31 @@ jobs:
       with:
         xcode-version: latest-stable
     
+    - name: Install xcodegen
+      run: |
+        brew install xcodegen
+    
+    - name: Generate Xcode Project
+      run: |
+        cd ${{ github.workspace }}
+        if [ -f "project.yml" ]; then
+          echo "📦 Generating Xcode project with xcodegen..."
+          xcodegen generate
+          echo "✅ Xcode project generated"
+        else
+          echo "⚠️ project.yml not found, skipping project generation"
+        fi
+    
     - name: Check if workspace exists
       id: check_workspace
       run: |
         cd ${{ github.workspace }}
-        if [ -f "VSSHKR.xcworkspace/contents.xcworkspacedata" ]; then
+        if [ -f "VSSHKR.xcworkspace/contents.xcworkspacedata" ] || [ -f "VSSHKR.xcodeproj/project.pbxproj" ]; then
           echo "workspace_exists=true" >> $GITHUB_OUTPUT
-          echo "✅ Workspace found - will attempt to build"
+          echo "✅ Workspace/project found - will attempt to build"
         else
           echo "workspace_exists=false" >> $GITHUB_OUTPUT
-          echo "ℹ️ Workspace not found - this is expected if project hasn't been created in Xcode yet"
+          echo "ℹ️ Workspace not found - project generation may have failed"
         fi
     
     - name: Install CocoaPods
@@ -50,13 +65,25 @@ jobs:
       continue-on-error: true
       run: |
         cd ${{ github.workspace }}
-        xcodebuild clean build \
-          -workspace VSSHKR.xcworkspace \
-          -scheme VSSHKR \
-          -sdk iphonesimulator \
-          -destination 'platform=iOS Simulator,name=iPhone 14' \
-          CODE_SIGN_IDENTITY="" \
-          CODE_SIGNING_REQUIRED=NO
+        if [ -f "VSSHKR.xcworkspace/contents.xcworkspacedata" ]; then
+          echo "🔨 Building with workspace..."
+          xcodebuild clean build \
+            -workspace VSSHKR.xcworkspace \
+            -scheme VSSHKR \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,name=iPhone 14' \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO
+        elif [ -f "VSSHKR.xcodeproj/project.pbxproj" ]; then
+          echo "🔨 Building with project..."
+          xcodebuild clean build \
+            -project VSSHKR.xcodeproj \
+            -scheme VSSHKR \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,name=iPhone 14' \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO
+        fi
     
     - name: Info - Workspace not found
       if: steps.check_workspace.outputs.workspace_exists == 'false'

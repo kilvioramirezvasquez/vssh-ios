@@ -18,6 +18,8 @@ targets:
     deploymentTarget: "13.0"
     sources:
       - path: VSSHKR
+        excludes:
+          - "**/*.md"
     info:
       path: Info.plist
       properties:
@@ -37,4 +39,8 @@ targets:
       PRODUCT_BUNDLE_IDENTIFIER: com.venafi.vsshkr
       SWIFT_VERSION: "5.0"
       TARGETED_DEVICE_FAMILY: "1,2" # iPhone and iPad
+      SWIFT_OBJC_BRIDGING_HEADER: ""
+      CODE_SIGN_IDENTITY: ""
+      CODE_SIGNING_REQUIRED: "NO"
+      CODE_SIGNING_ALLOWED: "NO"
 
