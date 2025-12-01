@@ -72,40 +72,55 @@ jobs:
           echo "Podfile contents:"
           cat Podfile
           echo ""
-          echo "Running pod install..."
-          # Try pod install with repo update if needed
-          pod install --repo-update --verbose 2>&1 | tee pod_install.log || {
-            echo "⚠️ pod install failed, trying without repo-update..."
-            pod install --verbose 2>&1 | tee pod_install.log || {
-              echo "❌ pod install failed completely!"
-              echo "Last 100 lines of pod install log:"
-              tail -100 pod_install.log
-              echo ""
-              echo "Checking if workspace exists anyway..."
-              if [ -f "VSSHKR.xcworkspace/contents.xcworkspacedata" ]; then
-                echo "✅ Workspace exists despite pod install failure"
-              else
-                echo "❌ No workspace found"
-                echo "This is critical - archive will fail without workspace"
-                exit 1
-              fi
-            }
-          }
-          echo "✅ Dependencies installed"
+          echo "Current directory contents:"
+          ls -la | head -20
+          echo ""
+          echo "Checking if project exists:"
+          ls -la VSSHKR.xcodeproj/ 2>/dev/null | head -5 || echo "Project not found"
+          echo ""
+          echo "Running pod install with full output..."
+          set -x  # Enable command tracing
+          pod install --verbose 2>&1 | tee pod_install.log
+          POD_EXIT_CODE=${PIPESTATUS[0]}
+          set +x  # Disable command tracing
+          echo ""
+          echo "Pod install exit code: $POD_EXIT_CODE"
+          echo ""
+          if [ $POD_EXIT_CODE -ne 0 ]; then
+            echo "❌ pod install failed with exit code $POD_EXIT_CODE"
+            echo "Full pod install log:"
+            cat pod_install.log
+            echo ""
+            echo "Checking what was created:"
+            ls -la | grep -E "(Pods|workspace|Podfile)"
+            exit 1
+          fi
+          echo "✅ pod install completed"
+          echo ""
           echo "📁 Verifying workspace was created..."
           if [ -f "VSSHKR.xcworkspace/contents.xcworkspacedata" ]; then
             echo "✅ Workspace created successfully"
             ls -la VSSHKR.xcworkspace/
           else
-            echo "⚠️ Workspace not found at expected location"
-            echo "Contents of current directory:"
-            ls -la
-            echo ""
+            echo "⚠️ Workspace not found at VSSHKR.xcworkspace"
             echo "Looking for any workspace files:"
-            find . -name "*.xcworkspace" -type d 2>/dev/null | head -10
+            find . -name "*.xcworkspace" -type d 2>/dev/null
             echo ""
-            echo "Checking Podfile.lock and Pods directory:"
-            ls -la Podfile.lock Pods/ 2>/dev/null || echo "Pods not installed"
+            echo "Checking Pods directory:"
+            if [ -d "Pods" ]; then
+              echo "✅ Pods directory exists"
+              ls -la Pods/ | head -10
+            else
+              echo "❌ Pods directory not found"
+            fi
+            echo ""
+            echo "Checking Podfile.lock:"
+            if [ -f "Podfile.lock" ]; then
+              echo "✅ Podfile.lock exists"
+              cat Podfile.lock
+            else
+              echo "❌ Podfile.lock not found"
+            fi
             echo ""
             echo "❌ Workspace not found - this will cause archive to fail"
             exit 1
