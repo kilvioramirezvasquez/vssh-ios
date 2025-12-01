@@ -133,10 +133,10 @@ jobs:
     
     - name: Archive iOS App
       if: steps.check_final_project.outputs.project_type != 'none'
-      continue-on-error: true
       run: |
         cd ${{ github.workspace }}
         echo "📦 Creating archive..."
+        mkdir -p ./build
         if [ "${{ steps.check_final_project.outputs.project_type }}" == "workspace" ]; then
           xcodebuild archive \
             -workspace VSSHKR.xcworkspace \
@@ -168,14 +168,23 @@ jobs:
               exit 1
             }
         fi
-        echo "✅ Archive created successfully"
+        # Verify archive was created
+        if [ -d "./build/VSSHKR.xcarchive" ]; then
+          echo "✅ Archive created successfully at ./build/VSSHKR.xcarchive"
+          ls -lh ./build/VSSHKR.xcarchive
+        else
+          echo "❌ Archive file not found after xcodebuild archive"
+          echo "Contents of build/ directory:"
+          ls -la ./build/ 2>/dev/null || echo "build/ directory is empty or doesn't exist"
+          exit 1
+        fi
     
     - name: Create IPA manually (skip exportArchive)
       if: steps.check_final_project.outputs.project_type != 'none'
       run: |
         cd ${{ github.workspace }}
         echo "📤 Creating IPA manually from archive..."
-        if [ -f "./build/VSSHKR.xcarchive" ]; then
+        if [ -d "./build/VSSHKR.xcarchive" ]; then
           # Find the .app inside the archive
           APP_PATH=$(find ./build/VSSHKR.xcarchive -name "VSSHKR.app" -type d | head -1)
           if [ -n "$APP_PATH" ] && [ -d "$APP_PATH" ]; then
