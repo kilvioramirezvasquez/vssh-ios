@@ -202,6 +202,7 @@ jobs:
         # Force use workspace if it exists (required for CocoaPods)
         if [ -f "VSSHKR.xcworkspace/contents.xcworkspacedata" ]; then
           echo "✅ Using workspace (required for CocoaPods dependencies)"
+          echo "Running xcodebuild archive..."
           xcodebuild archive \
             -workspace VSSHKR.xcworkspace \
             -scheme VSSHKR \
@@ -211,11 +212,24 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            -allowProvisioningUpdates 2>&1 | tee archive.log || {
-              echo "❌ Archive failed. Last 50 lines:"
-              tail -50 archive.log
-              exit 1
-            }
+            -allowProvisioningUpdates 2>&1 | tee archive.log
+          ARCHIVE_EXIT_CODE=${PIPESTATUS[0]}
+          
+          if [ $ARCHIVE_EXIT_CODE -ne 0 ]; then
+            echo ""
+            echo "❌ Archive failed with exit code $ARCHIVE_EXIT_CODE"
+            echo ""
+            echo "=== Last 100 lines of archive log ==="
+            tail -100 archive.log
+            echo ""
+            echo "=== Searching for error messages ==="
+            grep -i "error:" archive.log | tail -20 || echo "No 'error:' messages found"
+            grep -i "failed" archive.log | tail -20 || echo "No 'failed' messages found"
+            echo ""
+            echo "=== Build command failures ==="
+            grep -A 5 "build commands failed" archive.log || echo "No build command failures found"
+            exit 1
+          fi
         elif [ -f "VSSHKR.xcodeproj/project.pbxproj" ]; then
           echo "❌ Workspace not found but Podfile exists!"
           echo "❌ Cannot archive without workspace when using CocoaPods"
