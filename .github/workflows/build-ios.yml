@@ -152,7 +152,7 @@ jobs:
               tail -50 archive.log
               exit 1
             }
-        elif [ "${{ steps.check_project.outputs.project_type }}" == "project" ]; then
+        elif [ "${{ steps.check_final_project.outputs.project_type }}" == "project" ]; then
           xcodebuild archive \
             -project VSSHKR.xcodeproj \
             -scheme VSSHKR \
