@@ -70,10 +70,20 @@ jobs:
         if [ -f "Podfile" ]; then
           echo "📦 Installing CocoaPods dependencies..."
           pod install || {
-            echo "⚠️ pod install failed, but continuing..."
-            echo "This might be okay if dependencies are already installed"
+            echo "❌ pod install failed!"
+            echo "This is critical - archive will fail without workspace"
+            exit 1
           }
           echo "✅ Dependencies installed"
+          echo "📁 Verifying workspace was created..."
+          if [ -f "VSSHKR.xcworkspace/contents.xcworkspacedata" ]; then
+            echo "✅ Workspace created successfully"
+          else
+            echo "❌ Workspace not found after pod install!"
+            echo "Contents of current directory:"
+            ls -la
+            exit 1
+          fi
         else
           echo "⚠️ Podfile not found"
         fi
@@ -137,7 +147,10 @@ jobs:
         cd ${{ github.workspace }}
         echo "📦 Creating archive..."
         mkdir -p ./build
-        if [ "${{ steps.check_final_project.outputs.project_type }}" == "workspace" ]; then
+        
+        # Force use workspace if it exists (required for CocoaPods)
+        if [ -f "VSSHKR.xcworkspace/contents.xcworkspacedata" ]; then
+          echo "✅ Using workspace (required for CocoaPods dependencies)"
           xcodebuild archive \
             -workspace VSSHKR.xcworkspace \
             -scheme VSSHKR \
@@ -152,28 +165,19 @@ jobs:
               tail -50 archive.log
               exit 1
             }
-        elif [ "${{ steps.check_final_project.outputs.project_type }}" == "project" ]; then
-          echo "⚠️ Using project directly, but CocoaPods dependencies may not be available"
-          echo "⚠️ This will likely fail if dependencies are required"
-          echo "⚠️ Attempting archive anyway..."
-          xcodebuild archive \
-            -project VSSHKR.xcodeproj \
-            -scheme VSSHKR \
-            -archivePath ./build/VSSHKR.xcarchive \
-            -sdk iphoneos \
-            -configuration Release \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            -allowProvisioningUpdates 2>&1 | tee archive.log || {
-              echo "❌ Archive failed. Last 50 lines:"
-              tail -50 archive.log
-              echo ""
-              echo "💡 Tip: Archive requires workspace when using CocoaPods"
-              exit 1
-            }
+        elif [ -f "VSSHKR.xcodeproj/project.pbxproj" ]; then
+          echo "❌ Workspace not found but Podfile exists!"
+          echo "❌ Cannot archive without workspace when using CocoaPods"
+          echo "❌ This means pod install failed or didn't create workspace"
+          echo ""
+          echo "Checking for Podfile:"
+          ls -la Podfile 2>/dev/null || echo "Podfile not found"
+          echo ""
+          echo "Checking for workspace:"
+          ls -la *.xcworkspace 2>/dev/null || echo "No workspace found"
+          exit 1
         else
-          echo "❌ Unknown project type: ${{ steps.check_final_project.outputs.project_type }}"
+          echo "❌ No project or workspace found"
           exit 1
         fi
         # Verify archive was created
