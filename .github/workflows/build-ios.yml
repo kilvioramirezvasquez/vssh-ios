@@ -31,16 +31,26 @@ jobs:
         cd ${{ github.workspace }}
         if [ -f "project.yml" ]; then
           echo "📦 Generating Xcode project with xcodegen..."
+          # Remove old project to ensure clean generation
+          if [ -d "VSSHKR.xcodeproj" ]; then
+            echo "🗑️ Removing old project for clean regeneration..."
+            rm -rf VSSHKR.xcodeproj
+          fi
+          # Remove old workspace if it exists
+          if [ -d "VSSHKR.xcworkspace" ]; then
+            echo "🗑️ Removing old workspace..."
+            rm -rf VSSHKR.xcworkspace
+          fi
           xcodegen generate || {
-            echo "⚠️ xcodegen failed, checking if project already exists..."
-            if [ -f "VSSHKR.xcodeproj/project.pbxproj" ]; then
-              echo "✅ Project already exists"
-            else
-              echo "❌ Project generation failed"
-              exit 1
-            fi
+            echo "❌ Project generation failed"
+            exit 1
           }
-          echo "✅ Xcode project generated or already exists"
+          if [ -f "VSSHKR.xcodeproj/project.pbxproj" ]; then
+            echo "✅ Xcode project generated successfully"
+          else
+            echo "❌ Project file not found after generation"
+            exit 1
+          fi
         else
           echo "⚠️ project.yml not found, skipping project generation"
         fi
