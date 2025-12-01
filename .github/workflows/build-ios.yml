@@ -170,11 +170,20 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            -allowProvisioningUpdates 2>&1 | tee build.log || {
-              echo "❌ Build failed. Last 50 lines of log:"
-              tail -50 build.log
-              exit 1
-            }
+            -allowProvisioningUpdates 2>&1 | tee build.log
+          BUILD_EXIT_CODE=${PIPESTATUS[0]}
+          
+          if [ $BUILD_EXIT_CODE -ne 0 ]; then
+            echo ""
+            echo "❌ Build failed with exit code $BUILD_EXIT_CODE"
+            echo ""
+            echo "=== Searching for error messages ==="
+            grep -i "error:" build.log | head -30 || echo "No 'error:' messages found"
+            echo ""
+            echo "=== Last 100 lines of build log ==="
+            tail -100 build.log
+            exit 1
+          fi
         elif [ -f "VSSHKR.xcodeproj/project.pbxproj" ]; then
           xcodebuild clean build \
             -project VSSHKR.xcodeproj \
