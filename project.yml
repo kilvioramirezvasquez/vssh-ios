@@ -2,7 +2,7 @@ name: VSSHKR
 options:
   bundleIdPrefix: com.venafi
   deploymentTarget:
-    iOS: "13.0"
+    iOS: "15.0"
   developmentLanguage: en
   xcodeVersion: "14.0"
 
@@ -10,7 +10,7 @@ targets:
   VSSHKR:
     type: application
     platform: iOS
-    deploymentTarget: "13.0"
+    deploymentTarget: "15.0"
     sources:
       - path: VSSHKR
         excludes:
